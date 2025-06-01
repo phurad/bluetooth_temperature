@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>温湿度数据显示</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            background-color: #f4f4f9;
+        }
+
+        .container {
+            width: 80%;
+            margin: 20px auto;
+            text-align: center;
+        }
+
+        .control-panel {
+            max-height: 500px; /* 面板的最大高度为500px */
+            width: 100%;
+            padding: 20px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            margin-bottom: 30px;
+        }
+
+        .control-panel h1 {
+            margin-top: 0;
+        }
+
+        .control-panel form {
+            display: inline-block;
+            margin: 10px;
+        }
+
+        .control-panel input, .control-panel button {
+            padding: 10px;
+            margin: 5px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+        }
+
+        .control-panel button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        .control-panel button:hover {
+            background-color: #45a049;
+        }
+
+        .data-section {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        .data-section img {
+            width: 100%;
+            max-height: 300px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .real-time-data {
+            width: 100%;
+            background-color: #ffffff;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .real-time-data div {
+            margin: 10px 0;
+            font-size: 18px;
+            font-weight: bold;
+        }
+
+        .data-table {
+            width: 100%;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+        }
+
+        th {
+            background-color: #f2f2f2;
+        }
+
+        td {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- 控制面板 -->
+        <div class="control-panel">
+            <h1>控制面板</h1>
+
+            <!-- 文件名输入表单 -->
+            <form onsubmit="setFilename(event)">
+                <label for="filename">文件名：</label>
+                <input type="text" id="filename" name="filename" placeholder="请输入文件名" required>
+                <button type="submit">确认</button>
+                <h4>注：默认路径为当前python项目路径下/uploads/data.xlsx</h4>
+            </form>
+
+            <!-- 显示当前文件路径 -->
+            <p id="file-path"></p>
+
+            <!-- 时间间隔输入表单 -->
+            <form onsubmit="return validateInput()">
+                <label for="input_value">时间间隔(秒)：</label>
+                <input type="text" id="input_value" name="input_value">
+                <button type="submit">设置值</button>
+            </form>
+
+            <p id="result"></p>
+
+            <!-- 操作按钮 -->
+            <button onclick="startProgram()">开始</button>
+            <button onclick="stopProgram()">终止</button>
+
+            <!-- 蓝牙状态显示 -->
+            <p id="bluetooth-status">蓝牙状态：未连接</p>
+        </div>
+
+        <!-- 图像展示区域 -->
+        <div class="data-section">
+            <div>
+                <h2>温度图表</h2>
+                <img id="temperature-plot" src="/temperature-plot.png" alt="Temperature Plot">
+            </div>
+
+            <div>
+                <h2>湿度图表</h2>
+                <img id="humidity-plot" src="/humidity-plot.png" alt="Humidity Plot">
+            </div>
+        </div>
+
+        <!-- 数据表格 -->
+        <div class="data-table">
+            <h2>实时数据表格</h2>
+            <table id="data-table">
+                <thead>
+                    <tr>
+                        <th>Local Time</th>
+                        <th>Temperature</th>
+                        <th>Humidity</th>
+                        <th>Voltage</th>
+                        <th>Battery</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <!-- 数据行将通过 JavaScript 动态添加 -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        // 获取最新数据并更新表格
+        function updateTable() {
+            fetch('/latest-data')
+            .then(response => response.json())
+            .then(data => {
+                const tableBody = document.querySelector('#data-table tbody');
+                tableBody.innerHTML = '';  // 清空当前表格
+
+                // 遍历数据并生成表格行
+                data.forEach(row => {
+                    const tr = document.createElement('tr');
+                    tr.innerHTML = `
+                        <td>${row.localtime}</td>
+                        <td>${row.temperature}</td>
+                        <td>${row.humidity}</td>
+                        <td>${row.voltage}</td>
+                        <td>${row.battery}</td>
+                    `;
+                    tableBody.appendChild(tr);
+                });
+            });
+        }
+
+        // 更新图像
+        function updateImages() {
+            const timestamp = new Date().getTime();  // 获取当前时间戳
+
+            // 更新图片的 src 属性，附加时间戳防止缓存
+            document.getElementById('temperature-plot').src = `/temperature-plot.png?${timestamp}`;
+            document.getElementById('humidity-plot').src = `/humidity-plot.png?${timestamp}`;
+        }
+
+        // 设置定时器，每5秒更新一次表格和图像
+        setInterval(() => {
+            updateTable();
+            updateImages();
+        }, 1000);
+
+        // 页面加载时立即更新一次表格和图像
+        updateTable();
+        updateImages();
+    </script>
+
+    <!-- 其他相关功能的 JavaScript -->
+    <script>
+        function setFilename(event) {
+            event.preventDefault();  // 阻止表单的默认提交行为
+
+            const filename = document.getElementById('filename').value;  // 获取输入框的值
+
+            // 发送 AJAX 请求
+            fetch('/set_filename', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                },
+                body: new URLSearchParams({ 'filename': filename })
+            })
+            .then(response => {
+                if (response.ok) {
+                    return response.json();  // 返回 JSON 响应
+                }
+                throw new Error('网络错误');
+            })
+            .then(data => {
+                document.getElementById('file-path').innerText = `当前保存路径：${data.file_path}`;  // 显示路径
+            })
+            .catch(error => {
+                console.error('发生错误:', error);
+            });
+        }
+
+        function validateInput() {
+            const inputValue = document.getElementById('input_value').value;
+            if (!/^-?\d+$/.test(inputValue)) {
+                alert('请输入整数');
+                return false;
+            }
+            submitInput();
+            return false; // 阻止表单默认提交行为
+        }
+
+        function submitInput() {
+            const inputValue = document.getElementById('input_value').value;
+            fetch('/set_value', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ interval: inputValue })
+            }).then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('result').textContent = data.message;
+                } else {
+                    alert(data.message);
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function startProgram() {
+            fetch('/start', { method: 'POST' })
+                .then(response => response.text())
+                .then(data =>{
+                checkBluetoothStatus();
+                console.log(data)
+                })
+                .catch(error => console.error('Error:', error));
+        }
+
+        function stopProgram() {
+            fetch('/stop', { method: 'POST' })
+                .then(response => response.text())
+                .then(data =>{
+                checkBluetoothStatus();
+                console.log(data)
+                })
+                .catch(error => console.error('Error:', error));
+        }
+        // 定期检查蓝牙连接状态
+        function checkBluetoothStatus() {
+            const intervalId = setInterval(() => {
+                fetch('/bluetooth_status')
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('bluetooth-status').innerText = `蓝牙状态：${data.status}`;
+                    if (data.status === '连接成功' || data.status === '未连接' || data.status === '连接失败') {
+                        clearInterval(intervalId);  // 连接成功或未连接时停止检查
+                    }
+                });
+            }, 1000);  // 每1秒检查一次
+        }
+    </script>
+
+</body>
+</html>
