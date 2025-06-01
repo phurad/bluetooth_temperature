@@ -10,12 +10,12 @@ import getdata
 lock = threading.Lock()
 matplotlib.use('Agg')  # 设置 matplotlib 后端为 'Agg'，适合服务器端渲染
 app= Flask(__name__)
-filename= 'data.xlsx'
+filename= 'data.xlsx' #默认文件名
 
 is_running = False
 interval = 2
-file_path='uploads/data.xlsx'
-
+file_path='uploads/data.xlsx' #默认保存文件路径
+num_data=10 #默认用最近的十条数据生成图像
 
 # 定义文件上传的目录
 UPLOAD_FOLDER = 'uploads/'
@@ -32,7 +32,7 @@ def get_latest_data():
     df['localtime'] = pd.to_datetime(df['localtime']).dt.strftime('%Y-%m-%d %H:%M:%S')
 
     # 获取最新的10条数据
-    latest_data = df.tail(10)
+    latest_data = df.tail(num_data)
 
     # 将数据转换为字典形式
     data = latest_data.to_dict(orient='records')
@@ -44,7 +44,7 @@ def generate_temperature_plot():
         df['localtime'] = pd.to_datetime(df['localtime'])  # 转换为日期时间类型
 
         # 获取最新的10组数据
-        latest_data = df.tail(10)
+        latest_data = df.tail(num_data)
 
         # 设置图表大小
         plt.figure(figsize=(8, 4))
@@ -74,7 +74,7 @@ def generate_humidity_plot():
         df['localtime'] = pd.to_datetime(df['localtime'])  # 转换为日期时间类型
 
         # 获取最新的10组数据
-        latest_data = df.tail(10)
+        latest_data = df.tail(num_data)
 
         # 设置图表大小
         plt.figure(figsize=(8, 4))
