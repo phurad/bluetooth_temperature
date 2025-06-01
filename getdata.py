@@ -6,9 +6,9 @@ from openpyxl import Workbook, load_workbook
 import threading
 import app
 
-Mac = "A4:C1:38:6E:90:F1"  # 温度计的MAC
-Interval=app.interval     # 记录的时间间隔 单位S
-path='uploads/data.xlsx'
+Mac = "..."  # 温度计的MAC
+Interval=app.interval     # 记录的时间间隔 单位秒
+path='uploads/data.xlsx' 
 should_stop = False  # 新增的停止标志
 bluetooth_status='未连接'
 
